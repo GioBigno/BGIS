@@ -6,7 +6,7 @@
 class circle : public figure{
 public:
     circle(const QPoint center, const int radius);
-    void draw(QPainter *painter) const;
+    void draw(QPainter *painter) override;
 private:
     int radius;
 };

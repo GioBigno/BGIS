@@ -5,8 +5,7 @@
 
 class figure{
 public:
-    void virtual draw(QPainter *painter) const;
-protected:
+    virtual void draw(QPainter *painter) = 0;
     QVector<QPoint> points;
 };
 

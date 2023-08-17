@@ -4,7 +4,6 @@
 #include <QtQuick/QQuickPaintedItem>
 #include <QColor>
 #include "figure.h"
-#include "circle.h"
 
 class Whiteboard : public QQuickPaintedItem{
 
@@ -24,7 +23,7 @@ protected:
 
 private:
     QString m_pen;
-    QVector<figure> toDraw;
+    QVector<figure*> toDraw;
 
 };
 

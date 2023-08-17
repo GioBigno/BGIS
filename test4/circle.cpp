@@ -5,13 +5,15 @@
 #include <QPainter>
 #include <QDebug>
 
-circle::circle(QPoint center, int radius){
-
+circle::circle(const QPoint center, const int radius)
+    : figure()
+{
     points.push_back(center);
     this->radius = radius;
 }
 
-void circle::draw(QPainter *painter) const{
+void circle::draw(QPainter *painter) {
+    qInfo() << "draw circle";
     painter->drawEllipse(points[0], radius, radius);
 }
 
