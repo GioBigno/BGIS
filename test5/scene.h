@@ -16,7 +16,9 @@ protected:
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
     void wheelEvent(QWheelEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
     void computeMatrix();
@@ -25,11 +27,15 @@ private:
     QPointF worldCenter;
 
     double scaleFactor;
+    double rotationFactor;
 
     QTransform worldToScreen;
     QTransform screenToWorld;
+    QTransform tempMovingMatrix;
 
-    QVector<QPointF> points;
+    QPointF mouseDragStart;
+    bool tempMoving;
+    QVector<QPolygonF> polygons;
 };
 
 #endif // SCENE_H
