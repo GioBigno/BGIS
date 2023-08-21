@@ -13,6 +13,7 @@ Scene::Scene(QQuickItem *parent)
     worldCenter.setX(0);
     worldCenter.setY(0);
 
+    /*
     polygons.push_back(QPolygonF(QVector<QPointF> {
                                     QPointF(100, 100),
                                     QPointF(100, 180),
@@ -28,6 +29,10 @@ Scene::Scene(QQuickItem *parent)
                                     QPointF(-70, 30),
                                     QPointF(-70, -30)}
                                  ));
+    */
+
+    figures.push_back(QPointF(10, 10));
+
 }
 
 void Scene::paint(QPainter *painter){

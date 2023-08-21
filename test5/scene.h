@@ -35,7 +35,7 @@ private:
 
     QPointF mouseDragStart;
     bool tempMoving;
-    QVector<QPolygonF> polygons;
+    QVector<QPointF> figures;
 };
 
 #endif // SCENE_H
