@@ -1,6 +1,7 @@
 #include "scene.h"
 #include <QPainter>
 #include <QDebug>
+#include <QFileDialog>
 
 Scene::Scene(QQuickItem *parent)
     : QQuickPaintedItem(parent)
@@ -35,6 +36,18 @@ Scene::Scene(QQuickItem *parent)
 
 }
 
+void Scene::selectedFile(QString filePath){
+
+    if(filePath.isEmpty()){
+        return;
+    }else{
+        filePath = filePath.remove(0, 5);
+    }
+
+     qDebug() << "aperto" << filePath;
+
+}
+
 void Scene::paint(QPainter *painter){
 
     QBrush br(QColor("green"));
@@ -56,8 +69,8 @@ void Scene::paint(QPainter *painter){
 
     painter->setTransform(worldToScreen, true);
 
-    for(QPolygonF &p : polygons){
-        painter->drawPolygon(p);
+    for(QPointF &p : figures){
+        //painter->drawPolygon(p);
     }
 }
 
@@ -76,6 +89,8 @@ void Scene::mousePressEvent(QMouseEvent *event){
 
     mouseDragStart = event->position();
     tempMoving = true;
+    qDebug() << "click";
+
 }
 
 void Scene::mouseReleaseEvent(QMouseEvent *event){

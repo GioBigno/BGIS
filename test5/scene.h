@@ -11,6 +11,8 @@ class Scene : public QQuickPaintedItem{
 public:
     Scene(QQuickItem *parent = 0);
 
+    Q_INVOKABLE void selectedFile(QString filePath);
+
 protected:
     void paint(QPainter *painter) override;
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;

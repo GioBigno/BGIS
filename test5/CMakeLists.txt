@@ -4,7 +4,7 @@ project(test5 VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets)
 
 qt_standard_project_setup()
 
@@ -18,6 +18,8 @@ qt_add_qml_module(apptest5
     QML_FILES Main.qml
     SOURCES scene.h
     SOURCES scene.cpp
+    SOURCES reader.h
+    SOURCES reader.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -32,7 +34,7 @@ set_target_properties(apptest5 PROPERTIES
 )
 
 target_link_libraries(apptest5
-    PRIVATE Qt6::Quick
+    PRIVATE Qt6::Quick Qt6::Widgets
 )
 
 include(GNUInstallDirs)
