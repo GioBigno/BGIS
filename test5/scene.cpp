@@ -49,6 +49,8 @@ void Scene::selectedFile(QString filePath){
         qDebug() << "aperto" << filePath;
     }
 
+    resetMatrix();
+
     readShapeFile(shapeFile.fileName());
     /*
     qDebug()<<"DEBUG SHAPES";
@@ -82,9 +84,6 @@ void Scene::selectedFile(QString filePath){
         qDebug()<<"##########################################";
     }
 */
-
-    scaleFactor = 1;
-    rotationFactor = 0;
 
     computeMatrix();
     update();
@@ -122,6 +121,7 @@ void Scene::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
     QQuickPaintedItem::geometryChange(newGeometry, oldGeometry);
 
     screenCenter = newGeometry.center();
+    window = newGeometry;
 
     computeMatrix();
     update();
@@ -203,7 +203,7 @@ void Scene::readShapeFile(QString fileName){
     int typeShape=-1;
     double a[4], b[4];
     double maxX=0, maxY=0;
-    double minX=0, minY=0;
+    double minX=std::numeric_limits<double>::max(), minY=minX;
 
     SHPGetInfo(handle, &numShape, &typeShape, a, b);
 
@@ -220,17 +220,18 @@ void Scene::readShapeFile(QString fileName){
         QVector<Part> parts(ob.nParts);
 
         if(ob.nParts == 0 && ob.nVertices > 0){
+
             QVector<QPointF> vertices(ob.nVertices);
             for(int vertex=0; vertex<ob.nVertices; vertex++){
                 vertices[vertex].setX(ob.padfX[vertex]);
-                minX = std::min(minX, ob.padfX[vertex]);
-                maxX = std::max(maxX, ob.padfX[vertex]);
+                if(ob.padfX[vertex] < minX) minX = ob.padfX[vertex];
+                if(ob.padfX[vertex] > maxX) maxX = ob.padfX[vertex];
             }
 
             for(int vertex=0; vertex<ob.nVertices; vertex++){
                 vertices[vertex].setY(ob.padfY[vertex]);
-                minY = std::min(minY, ob.padfY[vertex]);
-                maxY = std::max(maxY, ob.padfY[vertex]);
+                if(ob.padfY[vertex] < minY) minY = ob.padfY[vertex];
+                if(ob.padfY[vertex] > maxY) maxY = ob.padfY[vertex];
             }
 
             parts.push_back(Part(ShapeType::Point, vertices));
@@ -249,18 +250,17 @@ void Scene::readShapeFile(QString fileName){
                 QVector<QPointF> vertices(endParts-ob.panPartStart[part]);
 
                 int indexVertex = 0;
-
                 for(int vertex=ob.panPartStart[part]; vertex<endParts; vertex++){
                     vertices[indexVertex++].setX(ob.padfX[vertex]);
-                    minX = std::min(minX, ob.padfX[vertex]);
-                    maxX = std::max(maxX, ob.padfX[vertex]);
+                    if(ob.padfX[vertex] < minX) minX = ob.padfX[vertex];
+                    if(ob.padfX[vertex] > maxX) maxX = ob.padfX[vertex];
                 }
 
                 indexVertex = 0;
                 for(int vertex=ob.panPartStart[part]; vertex<endParts; vertex++){
                     vertices[indexVertex++].setY(ob.padfY[vertex]);
-                    minY = std::min(minY, ob.padfY[vertex]);
-                    maxY = std::max(maxY, ob.padfY[vertex]);
+                    if(ob.padfY[vertex] < minY) minY = ob.padfY[vertex];
+                    if(ob.padfY[vertex] > maxY) maxY = ob.padfY[vertex];
                 }
 
                 parts[part] = Part(static_cast<ShapeType>(ob.panPartType[part]), vertices);
@@ -273,10 +273,26 @@ void Scene::readShapeFile(QString fileName){
     worldCenter = QPointF((minX/2)+(maxX/2), (minY/2)+(maxY/2));
     qDebug() << "world center: "<<worldCenter;
 
+    qDebug() << "width: " << window.width();
+    qDebug() << "height: " << window.height();
+
+    //double scaleWidth = window.width() / (worldToScreen.map(QPointF(maxX, 0)).x() - worldToScreen.map(QPointF(minX, 0)).x());
+    //double scaleHeight = window.height() / (worldToScreen.map(QPointF(0, maxY)).y() - worldToScreen.map(QPointF(0, minY)).y());
+
+    double scaleWidth = window.width() / (maxX - minX);
+    double scaleHeight = window.height() / (maxY - minY);
+
+    if(scaleWidth < scaleHeight)
+        scaleFactor = scaleWidth;
+    else
+        scaleFactor = scaleHeight;
+
     SHPClose(handle);
 }
 
 void Scene::resetMatrix(){
+    scaleFactor = 0;
+    rotationFactor = 0;
     worldToScreen.reset();
     screenToWorld.reset();
 }

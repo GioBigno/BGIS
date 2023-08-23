@@ -26,6 +26,8 @@ protected:
 private:
     void readShapeFile(QString fileName);
 
+    QRectF window;
+
     void resetMatrix();
     void computeMatrix();
 
