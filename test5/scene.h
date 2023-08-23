@@ -2,7 +2,8 @@
 #define SCENE_H
 
 #include <QtQuick/QQuickPaintedItem>
-#include <QColor>
+#include <QFile>
+#include "Shape.h"
 
 class Scene : public QQuickPaintedItem{
 
@@ -23,6 +24,9 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
+    void readShapeFile(QString fileName);
+
+    void resetMatrix();
     void computeMatrix();
 
     QPointF screenCenter;
@@ -37,7 +41,9 @@ private:
 
     QPointF mouseDragStart;
     bool tempMoving;
-    QVector<QPointF> figures;
+
+    QFile shapeFile;
+    QVector<Shape> shapes;
 };
 
 #endif // SCENE_H

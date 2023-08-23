@@ -18,8 +18,10 @@ qt_add_qml_module(apptest5
     QML_FILES Main.qml
     SOURCES scene.h
     SOURCES scene.cpp
-    SOURCES reader.h
-    SOURCES reader.cpp
+    SOURCES Shape.h
+    SOURCES Shape.cpp
+    SOURCES Part.h
+    SOURCES Part.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -35,6 +37,7 @@ set_target_properties(apptest5 PROPERTIES
 
 target_link_libraries(apptest5
     PRIVATE Qt6::Quick Qt6::Widgets
+    PUBLIC /usr/local/lib/libshp.so
 )
 
 include(GNUInstallDirs)

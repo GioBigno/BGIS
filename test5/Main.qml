@@ -27,11 +27,11 @@ Window {
             nameFilters: ["Shape files (*.shp *.SHP)"]
             options: FileDialog.ReadOnly
             onAccepted: {
-                console.log("You chose: " + fileDialog.selectedFile)
+                //console.log(fileDialog.selectedFile)
                 scene.selectedFile(fileDialog.selectedFile)
             }
             onRejected: {
-                console.log("Canceled")
+                //console.log("Canceled")
             }
 
         }
