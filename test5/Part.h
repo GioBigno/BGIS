@@ -18,6 +18,7 @@ public:
     Part();
 
     ShapeType getType();
+    void setType(ShapeType t);
     QVector<QPointF>& getVertices();
 
     void paint(QPainter *painter);

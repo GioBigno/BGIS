@@ -7,11 +7,15 @@ Part::Part(const ShapeType t, const QVector<QPointF> &vertices){
 
 Part::Part(){
     this->t = Point;
-    this->vertices = {};
+    this->vertices = QVector<QPointF>();
 }
 
 ShapeType Part::getType(){
     return t;
+}
+
+void Part::setType(ShapeType t){
+    this->t = t;
 }
 
 QVector<QPointF>& Part::getVertices(){

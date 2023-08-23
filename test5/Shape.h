@@ -10,10 +10,13 @@ class Shape{
 
 public:
     Shape(const ShapeType t, const QVector<Part> &parts);
+    Shape();
 
     ShapeType getType();
+    void setType(ShapeType t);
     QVector<Part>& getParts();
 
+    static ShapeType getTypeByInt(int typeInt);
     void paint(QPainter *painter);
 
 private:

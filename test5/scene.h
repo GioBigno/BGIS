@@ -23,6 +23,8 @@ protected:
     void wheelEvent(QWheelEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
 
+    void debugShapeFile();
+
 private:
     void readShapeFile(QString fileName);
 
@@ -42,6 +44,7 @@ private:
     QTransform tempMovingMatrix;
 
     QPointF mouseDragStart;
+    QPointF lastMousePositionWorld;
     bool tempMoving;
 
     QFile shapeFile;

@@ -2,23 +2,42 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls 2.15
 import QtQuick.Dialogs
+import QtQuick.Layouts
 import Bigno 1.0
 
 Window {
     width: 640
     height: 480
     visible: true
-    title: qsTr("Hello World")
+    title: qsTr("BGIS")
 
     Scene{
         id: scene
         anchors.fill: parent
         focus: true
 
-        Button{
-            text:  "Apri file"
-            onClicked: fileDialog.open();
+        ToolBar {
+            RowLayout {
+                anchors.fill: parent
+
+                ToolButton{
+                    text:  "Open file"
+                    onClicked: fileDialog.open();
+                }
+
+                ToolButton{
+                    text:  "Fill Color"
+                    onClicked: selezione.popup.visible = true;
+
+                    ComboBox {
+                        id: selezione
+                        visible: false
+                        displayText: "Fill color"
+                    }
+                }
+            }
         }
+
 
         FileDialog {
             id: fileDialog
@@ -33,14 +52,6 @@ Window {
             onRejected: {
                 //console.log("Canceled")
             }
-
         }
-
     }
-
-
-
-
-
-
 }
