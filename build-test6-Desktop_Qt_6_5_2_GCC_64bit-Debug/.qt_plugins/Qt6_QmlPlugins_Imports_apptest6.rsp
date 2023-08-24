@@ -1,0 +1,14 @@
+-rootPath
+/home/bigno/giorgio/BGIS/test6
+-cmake-output
+-output-file
+/home/bigno/giorgio/BGIS/build-test6-Desktop_Qt_6_5_2_GCC_64bit-Debug/.qt_plugins/Qt6_QmlPlugins_Imports_apptest6.cmake
+-importPath
+/home/bigno/giorgio/BGIS/build-test6-Desktop_Qt_6_5_2_GCC_64bit-Debug/test6
+-importPath
+/home/bigno/giorgio/BGIS/build-test6-Desktop_Qt_6_5_2_GCC_64bit-Debug
+-importPath
+/home/bigno/Qt/6.5.2/gcc_64/./qml
+-qrcFiles
+/home/bigno/giorgio/BGIS/build-test6-Desktop_Qt_6_5_2_GCC_64bit-Debug/.rcc/qmake_test6.qrc
+/home/bigno/giorgio/BGIS/build-test6-Desktop_Qt_6_5_2_GCC_64bit-Debug/.rcc/apptest6_raw_qml_0.qrc

@@ -1,0 +1,5 @@
+module test6
+typeinfo apptest6.qmltypes
+prefer :/test6/
+Main 1.0 Main.qml
+

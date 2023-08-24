@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="/test6">/home/bigno/giorgio/BGIS/build-test6-Desktop_Qt_6_5_2_GCC_64bit-Debug/test6</file>
+
+  </qresource>
+</RCC>
