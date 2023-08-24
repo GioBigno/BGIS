@@ -1,0 +1,2 @@
+proprietà "buco" di Part (vettore vertici ordinato in senso antiorario)
+selezione poligono/i

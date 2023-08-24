@@ -11,6 +11,27 @@ Window {
     visible: true
     title: qsTr("BGIS")
 
+    ListModel {
+        id: fillColorModel
+        ListElement { text: "orange"}
+        ListElement { text: "black"}
+        ListElement { text: "white"}
+        ListElement { text: "darkGray"}
+        ListElement { text: "gray"}
+        ListElement { text: "lightGray"}
+        ListElement { text: "red"}
+        ListElement { text: "green"}
+        ListElement { text: "blue"}
+        ListElement { text: "cyan"}
+        ListElement { text: "magenta"}
+        ListElement { text: "yellow"}
+        ListElement { text: "darkRed"}
+        ListElement { text: "darkGreen"}
+        ListElement { text: "darkBlue"}
+        ListElement { text: "darkCyan"}
+        ListElement { text: "darkMagenta"}
+    }
+
     Scene{
         id: scene
         anchors.fill: parent
@@ -25,15 +46,14 @@ Window {
                     onClicked: fileDialog.open();
                 }
 
-                ToolButton{
-                    text:  "Fill Color"
-                    onClicked: selezione.popup.visible = true;
-
-                    ComboBox {
-                        id: selezione
-                        visible: false
-                        displayText: "Fill color"
-                    }
+                ComboBox {
+                    id: fillColorComboBox
+                    visible: true
+                    flat: true
+                    displayText: "Fill color"
+                    model: fillColorModel
+                    Component.onCompleted: currentIndex = indexOfValue(scene.fillColor)
+                    onActivated: scene.fillColor = currentValue;
                 }
             }
         }

@@ -1,6 +1,4 @@
-#include <QPainter>
 #include <QDebug>
-#include <algorithm>
 #include "scene.h"
 #include <shapefil.h>
 #include "Shape.h"
@@ -10,6 +8,9 @@ Scene::Scene(QQuickItem *parent)
 {
     setAcceptedMouseButtons(Qt::AllButtons);
 
+    m_fillColor = QColor("blue");
+    borderWidth = 2;
+
     lastMousePositionWorld = {0, 0};
     tempMoving = false;
     scaleFactor = 1;
@@ -17,6 +18,14 @@ Scene::Scene(QQuickItem *parent)
 
     //worldCenter.setX(0);
     //worldCenter.setY(0);
+}
+
+QColor Scene::fillColor(){
+    return m_fillColor;
+}
+void Scene::setFillColor(QColor color){
+    m_fillColor = color;
+    update();
 }
 
 void Scene::selectedFile(QString filePath){
@@ -43,8 +52,11 @@ void Scene::selectedFile(QString filePath){
 
 void Scene::paint(QPainter *painter){
 
-    QBrush br(QColor("green"));
+    QBrush br(m_fillColor);
     painter->setBrush(br);
+    QPen pen(QColor("black"), borderWidth);
+    pen.setCosmetic(true);
+    painter->setPen(pen);
     painter->setRenderHint(QPainter::Antialiasing);
     painter->resetTransform();
 
@@ -122,6 +134,11 @@ void Scene::wheelEvent(QWheelEvent *event){
     else
         scaleFactor /= 1.3;
 
+    //if(scaleFactor <= 10000)
+      //  borderWidth /= scaleFactor;
+
+    qDebug() << "new borderWidth: " << borderWidth;
+
     QPointF mouseOnScreen(event->position().x(), event->position().y());
     QPointF expectedWorldCenter = screenToWorld.map(mouseOnScreen);
     computeMatrix();
@@ -194,6 +211,7 @@ void Scene::readShapeFile(QString fileName){
 
                 shapes[i].getParts()[part].setType(Shape::getTypeByInt(ob.panPartType[part]));
                 shapes[i].getParts()[part].getVertices().resize(endParts - ob.panPartStart[part]);
+                //TODO: qesta parte è un buco? aka: il suo vettore di vertici è in seso antiorario?
 
                 int indexVertex = 0;
                 for(int vertex=ob.panPartStart[part]; vertex<endParts; vertex++)

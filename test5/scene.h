@@ -3,6 +3,7 @@
 
 #include <QtQuick/QQuickPaintedItem>
 #include <QFile>
+#include <QColor>
 #include "Shape.h"
 
 class Scene : public QQuickPaintedItem{
@@ -12,9 +13,14 @@ class Scene : public QQuickPaintedItem{
 public:
     Scene(QQuickItem *parent = 0);
 
+    Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged)
     Q_INVOKABLE void selectedFile(QString filePath);
 
 protected:
+
+    QColor fillColor();
+    void setFillColor(QColor color);
+
     void paint(QPainter *painter) override;
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -27,6 +33,9 @@ protected:
 
 private:
     void readShapeFile(QString fileName);
+
+    QColor m_fillColor;
+    float borderWidth;
 
     QRectF window;
 
