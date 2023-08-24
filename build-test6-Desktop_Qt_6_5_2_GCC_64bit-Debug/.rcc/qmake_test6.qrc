@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/test6">
-    <file alias="qmldir">/home/bigno/giorgio/BGIS/build-test6-Desktop_Qt_6_5_2_GCC_64bit-Debug/test6/qmldir</file>
-  </qresource>
-</RCC>
-

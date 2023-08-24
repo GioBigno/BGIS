@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/test6/">
-    <file alias="Main.qml">/home/bigno/giorgio/BGIS/test6/Main.qml</file>
-  </qresource>
-</RCC>
-
