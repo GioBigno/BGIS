@@ -2,6 +2,8 @@
 #define SCENE_H
 
 #include <QQuickItem>
+#include <QFile>
+#include "Shape.h"
 
 class Scene : public QQuickItem{
 
@@ -10,16 +12,54 @@ class Scene : public QQuickItem{
 public:
     Scene(QQuickItem *parent = 0);
 
+    Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged);
+    Q_INVOKABLE void selectedFile(QString filePath);
+
+    void fillColorChanged();
+
 protected:
 
-    QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data) override;
+    QColor fillColor();
+    void setFillColor(QColor color);
 
+
+    QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data) override;
+    void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
 
-    QVector<QVector<QPoint>> regions;
+    void readShapeFile(QString fileName);
+    void debugShapeFile();
 
-    float rotationFactor;
+    QColor m_fillColor;
+
+    void resetMatrix();
+    void computeMatrix();
+
+    QTransform screenToWorld;
+    QTransform worldToScreen;
+    QTransform tempMovingMatrix;
+
+    QPointF mouseDragStart;
+    QPointF lastMousePositionWorld;
+    bool tempMoving;
+    bool updateShapeSceneGraph;
+
+    QPointF screenCenter;
+    QPointF worldCenter;
+
+    QRectF window;
+
+    double rotationFactor;
+    double scaleFactor;
+
+    QFile shapeFile;
+    QVector<Shape> shapes;
 };
 
 
