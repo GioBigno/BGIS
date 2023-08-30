@@ -2,28 +2,41 @@ cmake_minimum_required(VERSION 3.16)
 
 project(test6 VERSION 0.1 LANGUAGES CXX)
 
+add_compile_definitions(USE_UNSTABLE_GEOS_CPP_API)
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTORCC ON)
+
+set(GEOS_PATH "/home/bigno/giorgio/bin/geos" CACHE STRING "Path of geos library package")
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick)
+find_package(GEOS REQUIRED PATHS "${GEOS_PATH}")
 
 qt_standard_project_setup()
+#set(MYRES Main.qml)
+#qt_add_resources(MYRES res.qrc)
 
 qt_add_executable(apptest6
     main.cpp
+    Scene.h
+    Scene.cpp
+    Part.h
+    Part.cpp
+    Shape.h
+    Shape.cpp
+    shpformat.h
+    shpformat.cpp
+    shpreader.h
+    shpreader.cpp
+    esempio.txt
+    res.qrc
 )
 
-qt_add_qml_module(apptest6
-    URI test6
-    VERSION 1.0
-    QML_FILES Main.qml
-    SOURCES Scene.h
-    SOURCES Scene.cpp
-    SOURCES
-    SOURCES Part.h
-    SOURCES Part.cpp
-    SOURCES Shape.h
-    SOURCES Shape.cpp
-)
+#qt_add_qml_module(apptest6
+#    URI test6
+#    VERSION 1.0
+#    QML_FILES Main.qml
+#)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
@@ -38,7 +51,8 @@ set_target_properties(apptest6 PROPERTIES
 
 target_link_libraries(apptest6
     PRIVATE Qt6::Quick
-    PUBLIC /usr/local/lib/libshp.so
+    PUBLIC "/usr/local/lib/libshp.so"
+    PUBLIC GEOS::geos
 )
 
 include(GNUInstallDirs)

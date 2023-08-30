@@ -1,6 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include <geos/geom/Geometry.h>
 #include <QQuickItem>
 #include <QFile>
 #include "Shape.h"
@@ -15,6 +16,7 @@ public:
     Q_PROPERTY(QColor fillColor READ fillColor WRITE setFillColor NOTIFY fillColorChanged);
     Q_INVOKABLE void selectedFile(QString filePath);
 
+signals:
     void fillColorChanged();
 
 protected:
@@ -33,6 +35,7 @@ protected:
 
 private:
 
+    void debugGeometries();
     void readShapeFile(QString fileName);
     void debugShapeFile();
 
@@ -60,6 +63,7 @@ private:
 
     QFile shapeFile;
     QVector<Shape> shapes;
+    QVector<geos::geom::Geometry*> geometries;
 };
 
 

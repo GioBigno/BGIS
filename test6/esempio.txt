@@ -1,0 +1,47 @@
+{
+        bpp::ShpReader reader;
+        std::string openError;
+        reader.setFile( shpFabbName.toUtf8().data() );
+        retval = reader.open(true, true, openError);
+
+    //  const bpp::DataField& f_comune = reader.getField("comune");
+    //  const bpp::DataField& f_idgruppo = reader.getField("idgruppofa");
+
+    //    const bpp::DataField& f_partic = reader.getField("partic");
+    //    const bpp::DataField& f_ind = reader.getField("ind");
+    //    const bpp::DataField& f_civ = reader.getField("civ");
+
+    //    const bpp::pjHandle & srcPj = proj.getProjection(4326);
+    //    const bpp::pjHandle & dstPj = proj.getProjection(3857);
+
+    //  importer->workDb->transaction();
+        while(retval && reader.next())
+        {
+            if(reader.getGeomType() == bpp::gPoint) {
+                geos::geom::Point *geometry = reader.readPoint();
+                if(geometry)
+                {
+    //                proj.project(srcPj, dstPj, geometry);
+                    QString comune = reader.toQString(f_comune.fid);
+                    //if(comune.compare("D653") != 0) continue;
+                    //if(comune.compare("L397") != 0) continue;
+                    //if(comune.compare("H211") != 0) continue;
+                    //if(comune.compare("I888") != 0) continue; //Spello - PG
+                    //if(comune.compare("I461") != 0) continue; //Sassoferrato - AN
+                    //if(comune.compare("G751") != 0) continue; //POGGIARDO - LE
+                    //if(comune.compare("E815") != 0) continue; //MAGLIE - LE
+                    //if(comune.compare("D198") != 0) continue; //f_cuggiono - mi
+
+                    int nodeId = importer->workMap->addNode(25, *geometry);
+
+                    mapFabb[nodeId] = Fabb();
+                    Fabb& curFab = mapFabb[nodeId];
+                    curFab.geomCode = importer->workSession->getNttCode(25, nodeId);
+                    curFab.idGruppo = reader.toQString(f_idgruppo.fid);
+
+                    idGruppi.insert(curFab.idGruppo);
+                }
+            }
+        }
+        importer->workDb->commit(retval);
+    }

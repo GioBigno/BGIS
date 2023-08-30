@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<Scene>("Bigno", 1, 0, "Scene");
 
     QQmlApplicationEngine engine;
-    const QUrl url(u"qrc:/test6/Main.qml"_qs);
+    const QUrl url(u"qrc:/Main.qml"_qs);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
         &app, []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);

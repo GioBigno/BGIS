@@ -1,8 +1,7 @@
-#include <QQuickItem>
-#include <QTimer>
 #include <QSGGeometryNode>
 #include <QSGFlatColorMaterial>
 #include <shapefil.h>
+#include "shpreader.h"
 #include "Scene.h"
 #include "Shape.h"
 
@@ -46,10 +45,6 @@ void Scene::setFillColor(QColor color){
     update();
 }
 
-void Scene::fillColorChanged(){
-
-}
-
 void Scene::selectedFile(QString filePath){
 
     if(filePath.isEmpty()){
@@ -66,6 +61,9 @@ void Scene::selectedFile(QString filePath){
 
     resetMatrix();
     readShapeFile(shapeFile.fileName());
+    //debugShapeFile();
+    //debugGeometries();
+
     computeMatrix();
     update();
 
@@ -344,6 +342,51 @@ void Scene::computeMatrix(){
     screenToWorld.rotate(-rotationFactor);
     screenToWorld.scale(1.0/scaleFactor, 1.0/scaleFactor);
     screenToWorld.translate(-delta.x(), -delta.y());
+}
+
+void Scene::debugGeometries(){
+
+    for(size_t i=0; i<geometries.size(); i++){
+
+        geos::geom::Geometry *currentGeometry = geometries[i];
+
+        qDebug() << "tipo: " << currentGeometry->getGeometryType();
+        qDebug() << "n punti: " << currentGeometry->getNumPoints();
+
+        for(size_t iGeom = 0; iGeom < currentGeometry->getNumGeometries(); iGeom++){
+
+            qDebug() << "geometria n." << iGeom;
+
+            if(currentGeometry->getGeometryTypeId() == geos::geom::GEOS_MULTIPOLYGON){
+
+
+                const geos::geom::Polygon* currentP = dynamic_cast<const geos::geom::Polygon*>(currentGeometry->getGeometryN(iGeom));
+
+                const geos::geom::LinearRing* outRing = currentP->getExteriorRing();
+
+                qDebug() << "exterior ring: ";
+                std::unique_ptr<geos::geom::CoordinateSequence> outSeqPtr(outRing->getCoordinates());
+
+                for(size_t iCoord = 0; iCoord < outSeqPtr->getSize(); iCoord++){
+                    qDebug() << (outSeqPtr->getAt(iCoord)).toString();
+                }
+
+                for(size_t iHoles = 0; iHoles < currentP->getNumInteriorRing(); iHoles++){
+
+                    const geos::geom::LinearRing* inRing = currentP->getInteriorRingN(iHoles);
+
+                    qDebug() << "interior ring: ";
+                    std::unique_ptr<geos::geom::CoordinateSequence> inSeqPtr(inRing->getCoordinates());
+
+                    for(size_t iCoord = 0; iCoord < inSeqPtr->getSize(); iCoord++){
+                        qDebug() << (inSeqPtr->getAt(iCoord)).toString();
+                    }
+
+                }
+            }
+        }
+    }
+
 }
 
 void Scene::debugShapeFile(){
