@@ -1,9 +1,11 @@
 #include <QSGGeometryNode>
 #include <QSGFlatColorMaterial>
+#include <memory>
 #include <shapefil.h>
 #include "shpreader.h"
 #include "Scene.h"
 #include "Shape.h"
+
 
 Scene::Scene(QQuickItem *parent)
     :QQuickItem(parent)
@@ -61,8 +63,8 @@ void Scene::selectedFile(QString filePath){
 
     resetMatrix();
     readShapeFile(shapeFile.fileName());
-    //debugShapeFile();
-    //debugGeometries();
+    debugGeometries();
+    debugGeometries();
 
     computeMatrix();
     update();
@@ -236,67 +238,48 @@ void Scene::keyReleaseEvent(QKeyEvent *event){
 
 void Scene::readShapeFile(QString fileName){
 
-    SHPHandle handle =  SHPOpen(fileName.toStdString().c_str(), "rb");
+    geometries.clear();
 
-    shapes.clear();
+    bpp::ShpReader reader;
+    std::string openError;
+    reader.setFile( fileName.toUtf8().data() );
+    bool retval = reader.open(true, false, openError);
 
-    int numShape=0;
-    double mins[4], maxs[4];
+    while(retval && reader.next()){
 
-    SHPGetInfo(handle, &numShape, NULL, mins, maxs);
+        geos::geom::GeometryFactory::Ptr temp;
 
-    double minX = mins[0];
-    double minY = mins[1];
-    double maxX = maxs[0];
-    double maxY = maxs[1];
 
-    shapes.resize(numShape);
+        switch(reader.getGeomType()){
 
-    SHPObject ob;
-    for(int i=0; i<numShape; i++){
-        ob = *(SHPReadObject(handle, i));
-
-        shapes[i].setType( Shape::getTypeByInt(ob.nSHPType));
-
-        if(ob.nParts == 0 && ob.nVertices > 0){
-
-            shapes[i].getParts().resize(1);
-            shapes[i].getParts()[0].setType(ShapeType::Point);
-            shapes[i].getParts()[0].getVertices().resize(ob.nVertices);
-
-            for(int vertex=0; vertex<ob.nVertices; vertex++)
-                shapes[i].getParts()[0].getVertices()[vertex].setX(ob.padfX[vertex]);
-
-            for(int vertex=0; vertex<ob.nVertices; vertex++)
-                shapes[i].getParts()[0].getVertices()[vertex].setY(ob.padfY[vertex]);
-
-        }else{
-
-            shapes[i].getParts().resize(ob.nParts);
-
-            for(int part=0; part<ob.nParts; part++){
-
-                int endParts=0;
-                if(part == ob.nParts-1)
-                    endParts = ob.nVertices;
-                else
-                    endParts = ob.panPartStart[part+1];
-
-                shapes[i].getParts()[part].setType(Shape::getTypeByInt(ob.panPartType[part]));
-                shapes[i].getParts()[part].getVertices().resize(endParts - ob.panPartStart[part]);
-                //TODO: qesta parte è un buco? aka: il suo vettore di vertici è in seso antiorario?
-
-                int indexVertex = 0;
-                for(int vertex=ob.panPartStart[part]; vertex<endParts; vertex++)
-                    shapes[i].getParts()[part].getVertices()[indexVertex++].setX(ob.padfX[vertex]);
-
-                indexVertex = 0;
-                for(int vertex=ob.panPartStart[part]; vertex<endParts; vertex++)
-                    shapes[i].getParts()[part].getVertices()[indexVertex++].setY(ob.padfY[vertex]);
+        case bpp::gPoint:
+            geometries.push_back(temp->createPoint(reader.readPoint()->getCoordinates()).release());
+            break;
+        case bpp::gMultiPoint:
+            //geometries.push_back(temp->createMultiPoint(reader.readMultiPoint()->getCoordinates()).release());
+            break;
+        case bpp::gLine:
+            geometries.push_back(temp->createLineString(reader.readLineString()->getCoordinates()).release());
+            break;
+        case bpp::gPolygon:
+            {
+                geos::geom::MultiPolygon *p = reader.readMultiPolygon();
+                std::vector<const geos::geom::Geometry*> v;
+                for(size_t i=0; i<p->getNumGeometries(); i++){
+                    const geos::geom::Polygon* poly = p->getGeometryN(i);
+                    v.push_back(dynamic_cast<const geos::geom::Geometry*>(poly));
+                }
+                geometries.push_back(temp->createMultiPolygon(v).release());
             }
+            break;
+        case bpp::gUnknown:
+            qDebug() << "[shpReader]: geometry unknow";
+            break;
         }
     }
 
+
+    /*
     worldCenter = QPointF((minX/2)+(maxX/2), (minY/2)+(maxY/2));
 
     double scaleWidth = window.width() / (maxX - minX);
@@ -307,7 +290,7 @@ void Scene::readShapeFile(QString fileName){
     else
         scaleFactor = scaleHeight;
 
-    SHPClose(handle);
+    */
 
     updateShapeSceneGraph = true;
 }
@@ -346,9 +329,15 @@ void Scene::computeMatrix(){
 
 void Scene::debugGeometries(){
 
+    qDebug() << "[debug geometries]";
+
+    qDebug() << "size: " << geometries.size();
+
     for(size_t i=0; i<geometries.size(); i++){
 
-        geos::geom::Geometry *currentGeometry = geometries[i];
+        const geos::geom::Geometry* currentGeometry = geometries[i];
+
+        qDebug() << "letto";
 
         qDebug() << "tipo: " << currentGeometry->getGeometryType();
         qDebug() << "n punti: " << currentGeometry->getNumPoints();
@@ -385,39 +374,5 @@ void Scene::debugGeometries(){
                 }
             }
         }
-    }
-
-}
-
-void Scene::debugShapeFile(){
-    qDebug()<<"DEBUG SHAPES";
-    qDebug()<<"numero shapes: " << shapes.size();
-
-    for(Shape &shape : shapes){
-
-        qDebug()<<"##########################################";
-
-        qDebug()<<"tipo shape: "<<shape.getType();
-
-        QVector<Part> parti = shape.getParts();
-        qDebug()<<"numero parti:"<<parti.size();
-
-        for(Part &part : parti){
-
-            qDebug()<<"-----------------------------------------------";
-
-            QVector<QPointF> vertici = part.getVertices();
-
-            qDebug()<<"tipo parte: "<<part.getType();
-            qDebug()<<"numero di vertici: "<<vertici.size();
-
-            for(QPointF &punto : vertici) {
-                qDebug()<<"X: "<<punto.x()<<" Y: "<<punto.y();
-            }
-
-            qDebug()<<"--------------------------------------------------";
-        }
-
-        qDebug()<<"##########################################";
     }
 }

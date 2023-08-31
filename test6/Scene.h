@@ -37,7 +37,6 @@ private:
 
     void debugGeometries();
     void readShapeFile(QString fileName);
-    void debugShapeFile();
 
     QColor m_fillColor;
 

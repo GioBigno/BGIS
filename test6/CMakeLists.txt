@@ -8,13 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 
 set(GEOS_PATH "/home/bigno/giorgio/bin/geos" CACHE STRING "Path of geos library package")
+set(SHAPELIB_PATH "/home/bigno/giorgio/bin/shapelib/" CACHE STRING "Path of shapelib library package")
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick)
 find_package(GEOS REQUIRED PATHS "${GEOS_PATH}")
+find_package(shapelib REQUIRED PATHS "${SHAPELIB_PATH}")
 
 qt_standard_project_setup()
-#set(MYRES Main.qml)
-#qt_add_resources(MYRES res.qrc)
 
 qt_add_executable(apptest6
     main.cpp
@@ -51,7 +51,7 @@ set_target_properties(apptest6 PROPERTIES
 
 target_link_libraries(apptest6
     PRIVATE Qt6::Quick
-    PUBLIC "/usr/local/lib/libshp.so"
+    PUBLIC ${shapelib_LIBRARIES}
     PUBLIC GEOS::geos
 )
 
