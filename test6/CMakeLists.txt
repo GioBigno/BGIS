@@ -7,12 +7,18 @@ add_compile_definitions(USE_UNSTABLE_GEOS_CPP_API)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 
-set(GEOS_PATH "/home/bigno/giorgio/bin/geos" CACHE STRING "Path of geos library package")
-set(SHAPELIB_PATH "/home/bigno/giorgio/bin/shapelib/" CACHE STRING "Path of shapelib library package")
+set(QT_PATH "/home/bigno/Qt/6.5.2/gcc_64" CHAHE STRING "Path of Qt library package")
+set(GEOS_PATH "/usr/local/" CACHE STRING "Path of geos library package")
+set(SHAPELIB_PATH "/home/bigno/dev/lib/shapelib/bin/share/shapelib/" CACHE STRING "Path of shapelib library package")
+
+set(CMAKE_PREFIX_PATH "${QT_PATH}"
+                      "${GEOS_PATH}"
+                      "${SHAPELIB_PATH}")
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick)
-find_package(GEOS REQUIRED PATHS "${GEOS_PATH}")
-find_package(shapelib REQUIRED PATHS "${SHAPELIB_PATH}")
+find_package(GEOS REQUIRED)
+find_package(shapelib REQUIRED)
+#PATHS ${SHAPELIB_PATH} --^
 
 qt_standard_project_setup()
 
