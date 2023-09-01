@@ -26,10 +26,10 @@ qt_add_executable(apptest6
     main.cpp
     Scene.h
     Scene.cpp
-    Part.h
-    Part.cpp
-    Shape.h
-    Shape.cpp
+
+
+
+
     shpformat.h
     shpformat.cpp
     shpreader.h

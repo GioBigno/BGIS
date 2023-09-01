@@ -4,7 +4,6 @@
 #include <geos/geom/Geometry.h>
 #include <QQuickItem>
 #include <QFile>
-#include "Shape.h"
 
 class Scene : public QQuickItem{
 
