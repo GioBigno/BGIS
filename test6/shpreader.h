@@ -51,6 +51,11 @@ public:
     geos::geom::MultiLineString *readMultiLineString();
     geos::geom::MultiPolygon *readMultiPolygon();
 
+    const double getMinX();
+    const double getMinY();
+    const double getMaxX();
+    const double getMaxY();
+
     int getFieldCount();
     const DataField& getField(int ordinal) const;
     const DataField& getField(const std::string& fieldName) const;
@@ -69,6 +74,9 @@ private:
 
     class ShpHandles;
     ShpHandles* shph;
+
+    double padMin[4];
+    double padMax[4];
 
     eShpGeomType geomType;
     geos::geom::Point *lastPoint;

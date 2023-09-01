@@ -167,7 +167,7 @@ bool bpp::ShpReader::open(bool openShp, bool openDbf, std::string &errorMessage)
         }
         else
         {
-            SHPGetInfo(shph->shp, &shph->shpCount, &shph->shpType, nullptr, nullptr);
+            SHPGetInfo(shph->shp, &shph->shpCount, &shph->shpType, padMin, padMax);
             shph->numRecords = shph->shpCount;
             geomType = gUnknown;
             switch(shph->shpType)
@@ -384,6 +384,8 @@ geos::geom::Point *bpp::ShpReader::readPoint()
     {
         geos::geom::Coordinate coord(shObj->padfX[0], shObj->padfY[0], shObj->padfZ[0]);
         lastPoint = geomFactory->createPoint(coord).release();
+
+
 
         SHPDestroyObject(shObj);
         return lastPoint;
@@ -633,6 +635,19 @@ geos::geom::MultiPolygon *bpp::ShpReader::readMultiPolygon()
         SHPDestroyObject(shObj);
         return nullptr;
     }
+}
+
+const double bpp::ShpReader::getMinX(){
+    return padMin[0];
+}
+const double bpp::ShpReader::getMinY(){
+    return padMin[1];
+}
+const double bpp::ShpReader::getMaxX(){
+    return padMax[0];
+}
+const double bpp::ShpReader::getMaxY(){
+    return padMax[1];
 }
 
 int bpp::ShpReader::getFieldCount()

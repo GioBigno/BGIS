@@ -61,8 +61,7 @@ private:
     double scaleFactor;
 
     QFile shapeFile;
-    QVector<Shape> shapes;
-    QVector<geos::geom::Geometry*> geometries;
+    std::vector<std::unique_ptr<geos::geom::Geometry>> geometries;
 };
 
 

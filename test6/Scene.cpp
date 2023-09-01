@@ -4,8 +4,6 @@
 #include <shapefil.h>
 #include "shpreader.h"
 #include "Scene.h"
-#include "Shape.h"
-
 
 Scene::Scene(QQuickItem *parent)
     :QQuickItem(parent)
@@ -112,7 +110,7 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
 
     QSGTransformNode *tempMovingNode = static_cast<QSGTransformNode*>(parent->firstChild());
     QSGTransformNode *worldNode = static_cast<QSGTransformNode*>(tempMovingNode->firstChild());
-
+/*
     if(updateShapeSceneGraph){
         for(Shape currentShape : shapes){
 
@@ -149,7 +147,7 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
         }
         updateShapeSceneGraph = false;
     }
-
+*/
 
     if(tempMoving)
         tempMovingNode->setMatrix(tempMovingMatrix);
@@ -247,50 +245,43 @@ void Scene::readShapeFile(QString fileName){
 
     while(retval && reader.next()){
 
-        geos::geom::GeometryFactory::Ptr temp;
-
+        std::unique_ptr<geos::geom::Geometry> currentGeom(nullptr);
 
         switch(reader.getGeomType()){
 
         case bpp::gPoint:
-            geometries.push_back(temp->createPoint(reader.readPoint()->getCoordinates()).release());
+            currentGeom = std::move(reader.readPoint()->clone());
             break;
         case bpp::gMultiPoint:
-            //geometries.push_back(temp->createMultiPoint(reader.readMultiPoint()->getCoordinates()).release());
+            currentGeom = std::move(reader.readMultiPoint()->clone());
             break;
         case bpp::gLine:
-            geometries.push_back(temp->createLineString(reader.readLineString()->getCoordinates()).release());
+            currentGeom = std::move(reader.readLineString()->clone());
             break;
         case bpp::gPolygon:
-            {
-                geos::geom::MultiPolygon *p = reader.readMultiPolygon();
-                std::vector<const geos::geom::Geometry*> v;
-                for(size_t i=0; i<p->getNumGeometries(); i++){
-                    const geos::geom::Polygon* poly = p->getGeometryN(i);
-                    v.push_back(dynamic_cast<const geos::geom::Geometry*>(poly));
-                }
-                geometries.push_back(temp->createMultiPolygon(v).release());
-            }
+            currentGeom = std::move(reader.readMultiPolygon()->clone());
             break;
         case bpp::gUnknown:
             qDebug() << "[shpReader]: geometry unknow";
             break;
         }
+
+        if(currentGeom)
+            geometries.push_back(std::move(currentGeom));
+
     }
 
 
-    /*
-    worldCenter = QPointF((minX/2)+(maxX/2), (minY/2)+(maxY/2));
+    worldCenter = QPointF((reader.getMinX()/2)+(reader.getMaxX()/2),
+                          (reader.getMinY()/2)+(reader.getMaxY()/2));
 
-    double scaleWidth = window.width() / (maxX - minX);
-    double scaleHeight = window.height() / (maxY - minY);
+    double scaleWidth = window.width() / (reader.getMaxX() - reader.getMinX());
+    double scaleHeight = window.height() / (reader.getMaxY() - reader.getMinY());
 
     if(scaleWidth < scaleHeight)
         scaleFactor = scaleWidth;
     else
         scaleFactor = scaleHeight;
-
-    */
 
     updateShapeSceneGraph = true;
 }
@@ -335,7 +326,7 @@ void Scene::debugGeometries(){
 
     for(size_t i=0; i<geometries.size(); i++){
 
-        const geos::geom::Geometry* currentGeometry = geometries[i];
+        const std::unique_ptr<geos::geom::Geometry> currentGeometry(std::move(geometries.at(i).get()->clone()));
 
         qDebug() << "letto";
 
@@ -347,7 +338,6 @@ void Scene::debugGeometries(){
             qDebug() << "geometria n." << iGeom;
 
             if(currentGeometry->getGeometryTypeId() == geos::geom::GEOS_MULTIPOLYGON){
-
 
                 const geos::geom::Polygon* currentP = dynamic_cast<const geos::geom::Polygon*>(currentGeometry->getGeometryN(iGeom));
 
