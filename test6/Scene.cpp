@@ -273,11 +273,16 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
 void Scene::createSpatialIndex(){
 
     //spatialIndex
+    /*
     spatialIndex.reset(new geos::index::strtree::SimpleSTRtree);
 
-    for(const std::unique_ptr<geos::geom::Geometry> &shape : geometries){
-        spatialIndex->insert(shape.get());
+    for(size_t iGeom=0; iGeom < geometries.size(); iGeom++){
+
+        std::unique_ptr<geos::geom::Envelope> env(new geos::geom::Envelope());
+
+        spatialIndex->insert(geometries[iGeom].get()->getBoundary().get()->getEnvelope(), (void*)iGeom);
     }
+*/
 
 }
 
@@ -295,6 +300,7 @@ void Scene::selectShape(const QPoint &click){
     qDebug() << "idk size: " << idk.size();
     */
 
+    /*
     for(size_t iGeom=0; iGeom < geometries.size(); iGeom++){
 
         geos::geom::Geometry *shape = geometries[iGeom].get();
@@ -312,6 +318,7 @@ void Scene::selectShape(const QPoint &click){
             break;
         }
     }
+    */
 }
 
 void Scene::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry){
