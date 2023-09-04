@@ -1,9 +1,13 @@
 #include <QSGGeometryNode>
 #include <QSGFlatColorMaterial>
+
 #include <memory>
+#include <cassert>
+
 #include <shapefil.h>
 #include <geos/triangulate/polygon/ConstrainedDelaunayTriangulator.h>
 #include <geos/triangulate/tri/TriList.h>
+
 #include "shpreader.h"
 #include "Scene.h"
 
@@ -13,13 +17,13 @@ Scene::Scene(QQuickItem *parent)
     setFlag(QQuickItem::ItemHasContents, true);
     setAcceptedMouseButtons(Qt::AllButtons);
 
-    m_fillColor = QColor("blue");
+    m_fillColor = QColor("orange");
 
     lastMousePositionWorld = {0, 0};
     tempMoving = false;
     rotationFactor = 0.1;
     scaleFactor = 5;
-    updateShapeSceneGraph = false;
+    createShapeSceneGraph = false;
 
     worldCenter = QPointF(10, 10);
 }
@@ -29,6 +33,7 @@ QColor Scene::fillColor(){
 }
 void Scene::setFillColor(QColor color){
     m_fillColor = color;
+    updateShapeSceneGraph = true;
     update();
 }
 
@@ -48,8 +53,6 @@ void Scene::selectedFile(QString filePath){
 
     resetMatrix();
     readShapeFile(shapeFile.fileName());
-    //debugGeometries();
-    //debugGeometries();
 
     computeMatrix();
     update();
@@ -57,35 +60,147 @@ void Scene::selectedFile(QString filePath){
     shapeFile.close();
 }
 
-/*
-[scene graph]
-                      parent
-                         |
-                    tempMovingNode
-                         |
-                     worldNode
-                         |
-                         |
-                         |
-               __________|_________
-               |                  |
-               |                  |
-       ______shape______        shape
-       |               |
-     edge            filling
-       |               |
-    ___|____       ____|____
-    |      |       |       |
-    |      |       |       |
-    |      |       |       |
-  ring   ring    poly     poly
+QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+                                const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
+                                const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial) const{
+
+    QSGNode *currentShapeNode = new QSGNode;
+    currentShapeNode->setFlag(QSGNode::OwnedByParent, true);
+
+    // bordi /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    QSGNode *currentEdgeNode = new QSGNode;
+    currentEdgeNode->setFlag(QSGNode::OwnedByParent, true);
+
+    for(size_t iPart = 0; iPart < geom->getNumGeometries(); iPart++){
+
+        const geos::geom::Polygon* part = dynamic_cast<const geos::geom::Polygon*>(geom->getGeometryN(iPart));
+
+        for(size_t iRing = 0; iRing < part->getNumInteriorRing() + 1; iRing++){
+
+            const geos::geom::LinearRing* outRing;
+
+            if(iRing == 0)
+                outRing = part->getExteriorRing();
+            else
+                outRing = part->getInteriorRingN(iRing-1);
+
+            QSGGeometryNode *outRingNode  = new QSGGeometryNode;
+            outRingNode->setFlag(QSGNode::OwnedByParent, true);
+
+            QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), outRing->getNumPoints());
+            geometry->setDrawingMode(geometry->DrawLineStrip);
+            geometry->setLineWidth(5);
+
+            QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+
+            for(size_t i=0; i<outRing->getNumPoints(); i++){
+                points[i].set(outRing->getCoordinateN(i).x, outRing->getCoordinateN(i).y);
+            }
+
+            outRingNode->setGeometry(geometry);
+            outRingNode->setFlag(QSGNode::OwnsGeometry, true);
+
+            outRingNode->setMaterial(borderMaterial.get());
+
+            currentEdgeNode->appendChildNode(outRingNode);
+        }
+    }
+    currentShapeNode->appendChildNode(currentEdgeNode);
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////// riempimento ///////////////////////////////////////////////////////////////////////////////////////////
+
+    QSGNode *currentFillingNode = new QSGNode;
+    currentFillingNode->setFlag(QSGNode::OwnedByParent, true);
+
+    for(size_t iPart = 0; iPart < geom->getNumGeometries(); iPart++){
+
+        const geos::geom::Polygon* part = dynamic_cast<const geos::geom::Polygon*>(geom->getGeometryN(iPart));
 
 
-*/
+        TriList<Tri> trianglesVertices;
+        geos::triangulate::polygon::ConstrainedDelaunayTriangulator::triangulatePolygon(part, trianglesVertices);
+
+        QSGGeometryNode *currentPartNode  = new QSGGeometryNode;
+        currentPartNode->setFlag(QSGNode::OwnedByParent, true);
+
+        QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), trianglesVertices.size()*3);
+        geometry->setDrawingMode(geometry->DrawTriangles);
+        geometry->setLineWidth(5);
+
+        QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+
+        int iTriangle = 0;
+
+        for(auto &triangle : trianglesVertices){
+            for(size_t iVertex = 0; iVertex < 3; iVertex++){
+                points[iTriangle*3+iVertex].set(triangle->getCoordinate(iVertex).x,
+                                                    triangle->getCoordinate(iVertex).y);
+            }
+            iTriangle++;
+        }
+
+        currentPartNode->setGeometry(geometry);
+        currentPartNode->setFlag(QSGNode::OwnsGeometry, true);
+
+        currentPartNode->setMaterial(fillMaterial.get());
+
+        currentFillingNode->appendChildNode(currentPartNode);
+    }
+
+    currentShapeNode->appendChildNode(currentFillingNode);
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    return currentShapeNode;
+}
+
+void Scene::createSceneGraph(QSGNode *worldNode){
+
+    fillMaterial->setColor(m_fillColor);
+    borderMaterial->setColor("black");
+
+    QSGNode *realShapes = new QSGNode;
+    realShapes->setFlag(QSGNode::OwnedByParent, true);
+
+    QSGNode *selectedShape = new QSGNode;
+    selectedShape->setFlag(QSGNode::OwnedByParent, true);
+
+    for(const std::unique_ptr<geos::geom::Geometry> &shape : geometries){
+
+        QSGNode *currentShapeNode = createShapeNode(shape, fillMaterial, borderMaterial);
+        realShapes->appendChildNode(currentShapeNode);
+    }
+
+    worldNode->appendChildNode(realShapes);
+    worldNode->appendChildNode(selectedShape);
+
+    qDebug() << "figli2: " << worldNode->childCount();
+}
+
+void Scene::updateSceneGraph(QSGNode *worldNode){
+
+    fillMaterial->setColor(m_fillColor);
+
+
+    if(worldNode->childCount() > 0){
+
+        QSGNode *selectedShapeNode = worldNode->childAtIndex(1);
+        selectedShapeNode->removeAllChildNodes();
+
+        for(const size_t &indexShape : selectedShapes){
+
+            QSGNode *currentShapeNode = createShapeNode(geometries[indexShape], fillMaterial, borderMaterial);
+            selectedShapeNode->appendChildNode(currentShapeNode);
+
+        }
+    }
+
+}
 
 QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
-
-    //qDebug() << "update";
 
     QSGNode *parent = static_cast<QSGNode*>(oldNode);
 
@@ -104,113 +219,21 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
 
         tempMovingNode->appendChildNode(worldNode);
         parent->appendChildNode(tempMovingNode);
+
+        fillMaterial.reset(new QSGFlatColorMaterial);
+        borderMaterial.reset(new QSGFlatColorMaterial);
     }
 
     QSGTransformNode *tempMovingNode = static_cast<QSGTransformNode*>(parent->firstChild());
     QSGTransformNode *worldNode = static_cast<QSGTransformNode*>(tempMovingNode->firstChild());
 
+    if(createShapeSceneGraph){
+        createSceneGraph(worldNode);
+        createShapeSceneGraph = false;
+    }
+
     if(updateShapeSceneGraph){
-        for(const std::unique_ptr<geos::geom::Geometry> &shape : geometries){
-
-            QSGNode *currentShapeNode = new QSGNode;
-            currentShapeNode->setFlag(QSGNode::OwnedByParent, true);
-
-            // bordi /////////////////////////////////////////////////////////////////////////////////////////////////
-
-            QSGNode *currentEdgeNode = new QSGNode;
-            currentEdgeNode->setFlag(QSGNode::OwnedByParent, true);
-
-            for(size_t iPart = 0; iPart < shape->getNumGeometries(); iPart++){
-
-                const geos::geom::Polygon* part = dynamic_cast<const geos::geom::Polygon*>(shape->getGeometryN(iPart));
-
-                for(size_t iRing = 0; iRing < part->getNumInteriorRing() + 1; iRing++){
-
-                    const geos::geom::LinearRing* outRing;
-
-                    if(iRing == 0)
-                        outRing = part->getExteriorRing();
-                    else
-                        outRing = part->getInteriorRingN(iRing-1);
-
-                    QSGGeometryNode *outRingNode  = new QSGGeometryNode;
-                    outRingNode->setFlag(QSGNode::OwnedByParent, true);
-
-                    QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), outRing->getNumPoints());
-                    geometry->setDrawingMode(geometry->DrawLineStrip);
-                    geometry->setLineWidth(5);
-
-                    QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
-
-                    for(size_t i=0; i<outRing->getNumPoints(); i++){
-                        points[i].set(outRing->getCoordinateN(i).x, outRing->getCoordinateN(i).y);
-                    }
-
-                    outRingNode->setGeometry(geometry);
-                    outRingNode->setFlag(QSGNode::OwnsGeometry, true);
-
-                    QSGFlatColorMaterial *material = new QSGFlatColorMaterial;
-                    material->setColor(QColor("black"));
-                    outRingNode->setMaterial(material);
-                    outRingNode->setFlag(QSGNode::OwnsMaterial, true);
-
-                    currentEdgeNode->appendChildNode(outRingNode);
-                }
-            }
-            currentShapeNode->appendChildNode(currentEdgeNode);
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            /////// riempimento //////////////////////////////////////////////////////////////////////////////////////////////
-
-            QSGNode *currentFillingNode = new QSGNode;
-            currentFillingNode->setFlag(QSGNode::OwnedByParent, true);
-
-            for(size_t iPart = 0; iPart < shape->getNumGeometries(); iPart++){
-
-                const geos::geom::Polygon* part = dynamic_cast<const geos::geom::Polygon*>(shape->getGeometryN(iPart));
-
-
-                TriList<Tri> trianglesVertices;
-                geos::triangulate::polygon::ConstrainedDelaunayTriangulator::triangulatePolygon(part, trianglesVertices);
-
-                QSGGeometryNode *currentPartNode  = new QSGGeometryNode;
-                currentPartNode->setFlag(QSGNode::OwnedByParent, true);
-
-                QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), trianglesVertices.size()*3);
-                geometry->setDrawingMode(geometry->DrawTriangles);
-                geometry->setLineWidth(5);
-
-                QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
-
-                int iTriangle = 0;
-
-                for(auto &triangle : trianglesVertices){
-                    for(size_t iVertex = 0; iVertex < 3; iVertex++){
-                        points[iTriangle*3+iVertex].set(triangle->getCoordinate(iVertex).x,
-                                                        triangle->getCoordinate(iVertex).y);
-                    }
-                    iTriangle++;
-                }
-
-                currentPartNode->setGeometry(geometry);
-                currentPartNode->setFlag(QSGNode::OwnsGeometry, true);
-
-                QSGFlatColorMaterial *material = new QSGFlatColorMaterial;
-                material->setColor(QColor("green"));
-                currentPartNode->setMaterial(material);
-                currentPartNode->setFlag(QSGNode::OwnsMaterial, true);
-
-                currentFillingNode->appendChildNode(currentPartNode);
-            }
-
-            currentShapeNode->appendChildNode(currentFillingNode);
-
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-            worldNode->appendChildNode(currentShapeNode);
-
-        }
+        updateSceneGraph(worldNode);
         updateShapeSceneGraph = false;
     }
 
@@ -221,10 +244,6 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
         tempMovingNode->setMatrix(QTransform());
 
     worldNode->setMatrix(worldToScreen);
-
-    //QMatrix4x4 temp_mat(worldToScreen);
-    //temp_mat.translate(width()/2, height()/2);
-    //temp_mat.scale(scaleFactor);
 
     return parent;
 }
@@ -349,7 +368,7 @@ void Scene::readShapeFile(QString fileName){
     else
         scaleFactor = scaleHeight;
 
-    updateShapeSceneGraph = true;
+    createShapeSceneGraph = true;
 }
 
 void Scene::resetMatrix(){
@@ -360,8 +379,6 @@ void Scene::resetMatrix(){
 }
 
 void Scene::computeMatrix(){
-
-    //qDebug() << "compute Matrix";
 
     worldToScreen.reset();
     worldToScreen.scale(scaleFactor, scaleFactor);

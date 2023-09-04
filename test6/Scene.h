@@ -1,9 +1,10 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include <geos/geom/Geometry.h>
+#include <QSGFlatColorMaterial>
 #include <QQuickItem>
 #include <QFile>
+#include <geos/geom/Geometry.h>
 
 class Scene : public QQuickItem{
 
@@ -23,7 +24,11 @@ protected:
     QColor fillColor();
     void setFillColor(QColor color);
 
-
+    QSGNode* createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+                             const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
+                             const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial)const;
+    void createSceneGraph(QSGNode *worldNode);
+    void updateSceneGraph(QSGNode *worldNode);
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data) override;
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -38,6 +43,8 @@ private:
     void readShapeFile(QString fileName);
 
     QColor m_fillColor;
+    std::unique_ptr<QSGFlatColorMaterial> fillMaterial;
+    std::unique_ptr<QSGFlatColorMaterial> borderMaterial;
 
     void resetMatrix();
     void computeMatrix();
@@ -49,6 +56,7 @@ private:
     QPointF mouseDragStart;
     QPointF lastMousePositionWorld;
     bool tempMoving;
+    bool createShapeSceneGraph;
     bool updateShapeSceneGraph;
 
     QPointF screenCenter;
@@ -60,7 +68,9 @@ private:
     double scaleFactor;
 
     QFile shapeFile;
+
     std::vector<std::unique_ptr<geos::geom::Geometry>> geometries;
+    std::vector<size_t> selectedShapes;
 };
 
 

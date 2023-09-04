@@ -1,0 +1,75 @@
+#scene graph
+
+graph{
+
+	label="Scene graph"
+
+	parent;
+	parent -- tempMovingNode;
+	
+	tempMovingNode -- worldNode;
+	
+	worldNode -- realShapes;
+	worldNode -- selectedShapes;
+	
+		#realshape
+		{
+		realShapes -- shape1;
+		shape1[label="shape[1]"];
+		realShapes -- shape2;
+		shape2[label="shape[2]"];
+		realShapes -- shape3;
+		shape3[label="..."];
+		
+			shape1 -- edges;
+			edges[label="edge"];
+			shape1 -- filling;
+			
+			edges -- ring1;
+			ring1[label="ring[1]"];
+			edges -- ring2;
+			ring2[label="ring[2]"];
+			edges -- ring3;
+			ring3[label="..."];
+			
+			filling -- poly1;
+			poly1[label="poly[1]"];
+			filling -- poly2;
+			poly2[label="poly[2]"];
+			filling -- poly3;
+			poly3[label="..."];
+	
+		}
+		
+		#selectedShapes
+		{
+		selectedShapes -- sshape1;
+		sshape1[label="shape[1]"];
+		selectedShapes -- sshape2;
+		sshape2[label="shape[2]"];
+		selectedShapes -- sshape3;
+		sshape3[label="..."];
+		
+			sshape1 -- sedges;
+			sedges[label="edge"];
+			sshape1 -- sfilling;
+			sfilling[label="filling"]
+			
+			sedges -- sring1;
+			sring1[label="ring[1]"];
+			sedges -- sring2;
+			sring2[label="ring[2]"];
+			sedges -- sring3;
+			sring3[label="..."];
+			
+			sfilling -- spoly1;
+			spoly1[label="poly[1]"];
+			sfilling -- spoly2;
+			spoly2[label="poly[2]"];
+			sfilling -- spoly3;
+			spoly3[label="..."];
+	
+		}
+
+
+}
