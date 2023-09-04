@@ -5,6 +5,8 @@
 #include <cassert>
 
 #include <shapefil.h>
+#include <geos/geom/GeometryFactory.h>
+#include <geos/index/strtree/SimpleSTRtree.h>
 #include <geos/triangulate/polygon/ConstrainedDelaunayTriangulator.h>
 #include <geos/triangulate/tri/TriList.h>
 
@@ -19,11 +21,13 @@ Scene::Scene(QQuickItem *parent)
 
     m_fillColor = QColor("orange");
 
-    lastMousePositionWorld = {0, 0};
     tempMoving = false;
     rotationFactor = 0.1;
     scaleFactor = 5;
+
     createShapeSceneGraph = false;
+    updateColor = false;
+    updateSelection = false;
 
     worldCenter = QPointF(10, 10);
 }
@@ -33,7 +37,7 @@ QColor Scene::fillColor(){
 }
 void Scene::setFillColor(QColor color){
     m_fillColor = color;
-    updateShapeSceneGraph = true;
+    updateColor = true;
     update();
 }
 
@@ -54,6 +58,10 @@ void Scene::selectedFile(QString filePath){
     resetMatrix();
     readShapeFile(shapeFile.fileName());
 
+    selectedShapes.clear();
+    updateSelection = false;
+
+    createSpatialIndex();
     computeMatrix();
     update();
 
@@ -74,6 +82,7 @@ QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geo
 
     for(size_t iPart = 0; iPart < geom->getNumGeometries(); iPart++){
 
+        //attenzione non è detto che sia un polygon
         const geos::geom::Polygon* part = dynamic_cast<const geos::geom::Polygon*>(geom->getGeometryN(iPart));
 
         for(size_t iRing = 0; iRing < part->getNumInteriorRing() + 1; iRing++){
@@ -119,7 +128,6 @@ QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geo
 
         const geos::geom::Polygon* part = dynamic_cast<const geos::geom::Polygon*>(geom->getGeometryN(iPart));
 
-
         TriList<Tri> trianglesVertices;
         geos::triangulate::polygon::ConstrainedDelaunayTriangulator::triangulatePolygon(part, trianglesVertices);
 
@@ -159,8 +167,12 @@ QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geo
 
 void Scene::createSceneGraph(QSGNode *worldNode){
 
-    fillMaterial->setColor(m_fillColor);
-    borderMaterial->setColor("black");
+    fillMaterialRealShape->setColor(m_fillColor);
+    borderMaterialRealShape->setColor("black");
+
+    QColor selecColor(Qt::lightGray);
+    selecColor.setAlpha(150);
+    fillMaterialSelectedShape->setColor(selecColor);
 
     QSGNode *realShapes = new QSGNode;
     realShapes->setFlag(QSGNode::OwnedByParent, true);
@@ -170,34 +182,35 @@ void Scene::createSceneGraph(QSGNode *worldNode){
 
     for(const std::unique_ptr<geos::geom::Geometry> &shape : geometries){
 
-        QSGNode *currentShapeNode = createShapeNode(shape, fillMaterial, borderMaterial);
+        QSGNode *currentShapeNode = createShapeNode(shape, fillMaterialRealShape, borderMaterialRealShape);
         realShapes->appendChildNode(currentShapeNode);
     }
 
     worldNode->appendChildNode(realShapes);
     worldNode->appendChildNode(selectedShape);
-
-    qDebug() << "figli2: " << worldNode->childCount();
 }
 
-void Scene::updateSceneGraph(QSGNode *worldNode){
-
-    fillMaterial->setColor(m_fillColor);
-
+void Scene::updateSelectionSceneGraph(QSGNode *worldNode){
 
     if(worldNode->childCount() > 0){
 
-        QSGNode *selectedShapeNode = worldNode->childAtIndex(1);
-        selectedShapeNode->removeAllChildNodes();
+        worldNode->removeChildNode(worldNode->lastChild());
+
+        QSGNode *selectedShapeNode = new QSGNode;
 
         for(const size_t &indexShape : selectedShapes){
 
-            QSGNode *currentShapeNode = createShapeNode(geometries[indexShape], fillMaterial, borderMaterial);
+            QSGNode *currentShapeNode = createShapeNode(geometries[indexShape], fillMaterialSelectedShape, borderMaterialSelectedShape);
             selectedShapeNode->appendChildNode(currentShapeNode);
-
         }
-    }
 
+        worldNode->appendChildNode(selectedShapeNode);
+    }
+}
+
+void Scene::updateColorSceneGraph(QSGNode *worldNode){
+
+    fillMaterialRealShape->setColor(m_fillColor);
 }
 
 QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
@@ -220,21 +233,30 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
         tempMovingNode->appendChildNode(worldNode);
         parent->appendChildNode(tempMovingNode);
 
-        fillMaterial.reset(new QSGFlatColorMaterial);
-        borderMaterial.reset(new QSGFlatColorMaterial);
+        fillMaterialRealShape.reset(new QSGFlatColorMaterial);
+        borderMaterialRealShape.reset(new QSGFlatColorMaterial);
+        fillMaterialSelectedShape.reset(new QSGFlatColorMaterial);
+        borderMaterialSelectedShape.reset(new QSGFlatColorMaterial);
     }
 
     QSGTransformNode *tempMovingNode = static_cast<QSGTransformNode*>(parent->firstChild());
     QSGTransformNode *worldNode = static_cast<QSGTransformNode*>(tempMovingNode->firstChild());
 
     if(createShapeSceneGraph){
+        //new file opened
+        worldNode->removeAllChildNodes();
         createSceneGraph(worldNode);
         createShapeSceneGraph = false;
     }
 
-    if(updateShapeSceneGraph){
-        updateSceneGraph(worldNode);
-        updateShapeSceneGraph = false;
+    if(updateColor){
+        updateColorSceneGraph(worldNode);
+        updateColor = false;
+    }
+
+    if(updateSelection){
+        updateSelectionSceneGraph(worldNode);
+        updateSelection = false;
     }
 
 
@@ -246,6 +268,50 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
     worldNode->setMatrix(worldToScreen);
 
     return parent;
+}
+
+void Scene::createSpatialIndex(){
+
+    //spatialIndex
+    spatialIndex.reset(new geos::index::strtree::SimpleSTRtree);
+
+    for(const std::unique_ptr<geos::geom::Geometry> &shape : geometries){
+        spatialIndex->insert(shape.get());
+    }
+
+}
+
+void Scene::selectShape(const QPoint &click){
+
+    QPoint pointClick = screenToWorld.map(click);
+
+    /*
+    std::vector<void *> idk;
+
+    geos::geom::CoordinateXY coord(pointClick.x(), pointClick.y());
+    std::unique_ptr<geos::geom::Envelope> env(new geos::geom::Envelope(coord));
+    spatialIndex->query(env.get(), idk);
+
+    qDebug() << "idk size: " << idk.size();
+    */
+
+    for(size_t iGeom=0; iGeom < geometries.size(); iGeom++){
+
+        geos::geom::Geometry *shape = geometries[iGeom].get();
+
+        geos::geom::Coordinate coord(pointClick.x(), pointClick.y());
+        geos::geom::GeometryFactory::Ptr temp;
+        geos::geom::Point *p = temp->createPoint(coord).release();
+
+        if(shape->contains(p)){
+            if(selectedShapes.count(iGeom))
+                selectedShapes.erase(iGeom);
+            else
+                selectedShapes.insert(iGeom);
+
+            break;
+        }
+    }
 }
 
 void Scene::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry){
@@ -261,7 +327,6 @@ void Scene::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
 void Scene::mousePressEvent(QMouseEvent *event){
     QQuickItem::mousePressEvent(event);
     event->accept();
-    lastMousePositionWorld = screenToWorld.map(event->position());
     mouseDragStart = event->position();
     tempMoving = true;
 }
@@ -270,9 +335,18 @@ void Scene::mouseReleaseEvent(QMouseEvent *event){
     QQuickItem::mouseReleaseEvent(event);
     tempMoving = false;
 
-    QPointF delta(screenToWorld.map(event->position()) - screenToWorld.map(mouseDragStart));
-    worldCenter = (worldCenter - delta);
-    computeMatrix();
+    if(event->pos() == mouseDragStart){ //click
+
+        updateSelection = true;
+        selectShape(event->pos());
+
+    }else{ //drag
+
+        QPointF delta(screenToWorld.map(event->position()) - screenToWorld.map(mouseDragStart));
+        worldCenter = (worldCenter - delta);
+        computeMatrix();
+    }
+
     update();
 }
 
@@ -355,7 +429,6 @@ void Scene::readShapeFile(QString fileName){
             geometries.push_back(std::move(currentGeom));
 
     }
-
 
     worldCenter = QPointF((reader.getMinX()/2)+(reader.getMaxX()/2),
                           (reader.getMinY()/2)+(reader.getMaxY()/2));

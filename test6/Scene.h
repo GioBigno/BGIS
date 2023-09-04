@@ -4,6 +4,8 @@
 #include <QSGFlatColorMaterial>
 #include <QQuickItem>
 #include <QFile>
+
+#include <geos/index/strtree/SimpleSTRtree.h>
 #include <geos/geom/Geometry.h>
 
 class Scene : public QQuickItem{
@@ -28,9 +30,14 @@ protected:
                              const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
                              const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial)const;
     void createSceneGraph(QSGNode *worldNode);
-    void updateSceneGraph(QSGNode *worldNode);
+    void updateColorSceneGraph(QSGNode *worldNode);
+    void updateSelectionSceneGraph(QSGNode *worldNode);
     QSGNode *updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data) override;
+
+    void createSpatialIndex();
+    void selectShape(const QPoint &click);
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
+
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -43,8 +50,10 @@ private:
     void readShapeFile(QString fileName);
 
     QColor m_fillColor;
-    std::unique_ptr<QSGFlatColorMaterial> fillMaterial;
-    std::unique_ptr<QSGFlatColorMaterial> borderMaterial;
+    std::unique_ptr<QSGFlatColorMaterial> fillMaterialRealShape;
+    std::unique_ptr<QSGFlatColorMaterial> borderMaterialRealShape;
+    std::unique_ptr<QSGFlatColorMaterial> fillMaterialSelectedShape;
+    std::unique_ptr<QSGFlatColorMaterial> borderMaterialSelectedShape;
 
     void resetMatrix();
     void computeMatrix();
@@ -54,10 +63,10 @@ private:
     QTransform tempMovingMatrix;
 
     QPointF mouseDragStart;
-    QPointF lastMousePositionWorld;
     bool tempMoving;
     bool createShapeSceneGraph;
-    bool updateShapeSceneGraph;
+    bool updateColor;
+    bool updateSelection;
 
     QPointF screenCenter;
     QPointF worldCenter;
@@ -70,7 +79,9 @@ private:
     QFile shapeFile;
 
     std::vector<std::unique_ptr<geos::geom::Geometry>> geometries;
-    std::vector<size_t> selectedShapes;
+    std::set<size_t> selectedShapes;
+
+    std::unique_ptr<geos::index::strtree::SimpleSTRtree> spatialIndex;
 };
 
 
