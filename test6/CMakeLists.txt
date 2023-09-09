@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 
 set(QT_PATH "/home/bigno/Qt/6.5.2/gcc_64" CACHE STRING "Path of Qt library package")
-set(GEOS_PATH "/home/bigno/giorgio/bin/geos/lib/cmake/" CACHE STRING "Path of geos library package")
-set(SHAPELIB_PATH "/home/bigno/giorgio/bin/shapelib/share/shapelib/" CACHE STRING "Path of shapelib library package")
+set(GEOS_PATH "/usr/local/" CACHE STRING "Path of geos library package")
+set(SHAPELIB_PATH "/home/bigno/dev/lib/shapelib/bin/share/shapelib/" CACHE STRING "Path of shapelib library package")
 
 set(CMAKE_PREFIX_PATH "${QT_PATH}"
                       "${GEOS_PATH}"
