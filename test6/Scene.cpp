@@ -135,7 +135,7 @@ QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geo
         currentPartNode->setFlag(QSGNode::OwnedByParent, true);
 
         QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), trianglesVertices.size()*3);
-        geometry->setDrawingMode(geometry->DrawTriangles);
+        geometry->setDrawingMode(geometry->DrawTriangleFan);
         geometry->setLineWidth(5);
 
         QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
@@ -145,7 +145,7 @@ QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geo
         for(auto &triangle : trianglesVertices){
             for(size_t iVertex = 0; iVertex < 3; iVertex++){
                 points[iTriangle*3+iVertex].set(triangle->getCoordinate(iVertex).x,
-                                                    triangle->getCoordinate(iVertex).y);
+                                                triangle->getCoordinate(iVertex).y);
             }
             iTriangle++;
         }
