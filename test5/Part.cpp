@@ -43,7 +43,6 @@ void Part::paint(QPainter *painter){
         //painter->drawPolygon(QPolygonF(vertices));
         pp.addPolygon(QPolygonF(vertices));
         painter->drawPath(pp);
-        qDebug() << painter->pen().width();
         //painter->drawPolyline(vertices);
         break;
     case MultiPoint:
