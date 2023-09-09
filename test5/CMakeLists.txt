@@ -4,8 +4,14 @@ project(test5 VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Widgets)
+set(QT_PATH "/home/bigno/Qt/6.5.2/gcc_64" CACHE STRING "Path of Qt library package")
+set(SHAPELIB_PATH "/home/bigno/dev/lib/shapelib/bin/share/shapelib/" CACHE STRING "Path of shapelib library package")
 
+set(CMAKE_PREFIX_PATH "${QT_PATH}"
+                      "${SHAPELIB_PATH}")
+
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick)
+find_package(shapelib REQUIRED)
 qt_standard_project_setup()
 
 qt_add_executable(apptest5
@@ -36,8 +42,8 @@ set_target_properties(apptest5 PROPERTIES
 )
 
 target_link_libraries(apptest5
-    PRIVATE Qt6::Quick Qt6::Widgets
-    PUBLIC /usr/local/lib/libshp.so
+    PRIVATE Qt6::Quick
+    PUBLIC ${shapelib_LIBRARIES}
 )
 
 include(GNUInstallDirs)
