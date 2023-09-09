@@ -26,9 +26,15 @@ protected:
     QColor fillColor();
     void setFillColor(QColor color);
 
-    QSGNode* createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
-                             const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
-                             const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial)const;
+    QSGNode* createPolygonShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+                                    const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
+                                    const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial)const;
+    QSGNode* createMultiPointShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+                                       const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
+                                       const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial) const;
+    QSGNode* createLineStringShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+                                       const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
+                                       const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial) const;
     void createSceneGraph(QSGNode *worldNode);
     void updateColorSceneGraph(QSGNode *worldNode);
     void updateSelectionSceneGraph(QSGNode *worldNode);

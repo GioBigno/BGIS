@@ -68,9 +68,10 @@ void Scene::selectedFile(QString filePath){
     shapeFile.close();
 }
 
-QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+QSGNode* Scene::createPolygonShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
                                 const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
-                                const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial) const{
+                                const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial) const
+{
 
     QSGNode *currentShapeNode = new QSGNode;
     currentShapeNode->setFlag(QSGNode::OwnedByParent, true);
@@ -82,7 +83,6 @@ QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geo
 
     for(size_t iPart = 0; iPart < geom->getNumGeometries(); iPart++){
 
-        //attenzione non è detto che sia un polygon
         const geos::geom::Polygon* part = dynamic_cast<const geos::geom::Polygon*>(geom->getGeometryN(iPart));
 
         for(size_t iRing = 0; iRing < part->getNumInteriorRing() + 1; iRing++){
@@ -165,6 +165,150 @@ QSGNode* Scene::createShapeNode(const std::unique_ptr<geos::geom::Geometry> &geo
     return currentShapeNode;
 }
 
+QSGNode* Scene::createMultiPointShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+                                       const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
+                                       const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial) const
+{
+
+    QSGNode *currentShapeNode = new QSGNode;
+    currentShapeNode->setFlag(QSGNode::OwnedByParent, true);
+
+    // bordi /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    QSGNode *currentEdgeNode = new QSGNode;
+    currentEdgeNode->setFlag(QSGNode::OwnedByParent, true);
+
+    for(size_t iPart = 0; iPart < geom->getNumGeometries(); iPart++){
+
+        const geos::geom::Point* part = dynamic_cast<const geos::geom::Point*>(geom->getGeometryN(iPart));
+
+        QSGGeometryNode *currentPartNode  = new QSGGeometryNode;
+        currentPartNode->setFlag(QSGNode::OwnedByParent, true);
+
+        QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 1);
+        geometry->setDrawingMode(geometry->DrawPoints);
+        geometry->setLineWidth(5);
+
+        QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+        points[0].set(part->getCoordinate()->x, part->getCoordinate()->y);
+
+        currentPartNode->setGeometry(geometry);
+        currentPartNode->setFlag(QSGNode::OwnsGeometry, true);
+
+        currentPartNode->setMaterial(borderMaterial.get());
+
+        currentEdgeNode->appendChildNode(currentPartNode);
+    }
+
+    currentShapeNode->appendChildNode(currentEdgeNode);
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////// riempimento ///////////////////////////////////////////////////////////////////////////////////////////
+
+    QSGNode *currentFillingNode = new QSGNode;
+    currentFillingNode->setFlag(QSGNode::OwnedByParent, true);
+
+    for(size_t iPart = 0; iPart < geom->getNumGeometries(); iPart++){
+
+        const geos::geom::Point* part = dynamic_cast<const geos::geom::Point*>(geom->getGeometryN(iPart));
+
+        QSGGeometryNode *currentPartNode  = new QSGGeometryNode;
+        currentPartNode->setFlag(QSGNode::OwnedByParent, true);
+
+        QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 1);
+        geometry->setDrawingMode(geometry->DrawPoints);
+        geometry->setLineWidth(5);
+
+        QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+        points[0].set(part->getCoordinate()->x, part->getCoordinate()->y);
+
+        currentPartNode->setGeometry(geometry);
+        currentPartNode->setFlag(QSGNode::OwnsGeometry, true);
+
+        currentPartNode->setMaterial(fillMaterial.get());
+
+        currentEdgeNode->appendChildNode(currentPartNode);
+    }
+
+    currentShapeNode->appendChildNode(currentFillingNode);
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    return currentShapeNode;
+}
+
+QSGNode* Scene::createLineStringShapeNode(const std::unique_ptr<geos::geom::Geometry> &geom,
+                                          const std::unique_ptr<QSGFlatColorMaterial> &fillMaterial,
+                                          const std::unique_ptr<QSGFlatColorMaterial> &borderMaterial) const
+{
+
+    QSGNode *currentShapeNode = new QSGNode;
+    currentShapeNode->setFlag(QSGNode::OwnedByParent, true);
+
+    // bordi /////////////////////////////////////////////////////////////////////////////////////////////////
+    {
+        QSGNode *currentEdgeNode = new QSGNode;
+        currentEdgeNode->setFlag(QSGNode::OwnedByParent, true);
+
+        const geos::geom::LineString* part = dynamic_cast<const geos::geom::LineString*>(geom.get());
+
+        QSGGeometryNode *currentPartNode  = new QSGGeometryNode;
+        currentPartNode->setFlag(QSGNode::OwnedByParent, true);
+
+        QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), part->getNumPoints());
+        geometry->setDrawingMode(geometry->DrawLines);
+        geometry->setLineWidth(5);
+
+        QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+
+        for(size_t iVertex=0; iVertex<part->getNumPoints(); iVertex++)
+            points[iVertex].set(part->getCoordinateN(iVertex).x, part->getCoordinateN(iVertex).y);
+
+        currentPartNode->setGeometry(geometry);
+        currentPartNode->setFlag(QSGNode::OwnsGeometry, true);
+
+        currentPartNode->setMaterial(borderMaterial.get());
+
+        currentEdgeNode->appendChildNode(currentPartNode);
+        currentShapeNode->appendChildNode(currentEdgeNode);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////// riempimento ///////////////////////////////////////////////////////////////////////////////////////////
+    {
+        QSGNode *currentFillingNode = new QSGNode;
+        currentFillingNode->setFlag(QSGNode::OwnedByParent, true);
+
+        const geos::geom::LineString* part = dynamic_cast<const geos::geom::LineString*>(geom.get());
+
+        QSGGeometryNode *currentPartNode  = new QSGGeometryNode;
+        currentPartNode->setFlag(QSGNode::OwnedByParent, true);
+
+        QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), part->getNumPoints());
+        geometry->setDrawingMode(geometry->DrawLines);
+        geometry->setLineWidth(5);
+
+        QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+
+        for(size_t iVertex=0; iVertex<part->getNumPoints(); iVertex++)
+            points[iVertex].set(part->getCoordinateN(iVertex).x, part->getCoordinateN(iVertex).y);
+
+        currentPartNode->setGeometry(geometry);
+        currentPartNode->setFlag(QSGNode::OwnsGeometry, true);
+
+        currentPartNode->setMaterial(fillMaterial.get());
+
+        currentFillingNode->appendChildNode(currentPartNode);
+        currentShapeNode->appendChildNode(currentFillingNode);
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    return currentShapeNode;
+}
+
 void Scene::createSceneGraph(QSGNode *worldNode){
 
     fillMaterialRealShape->setColor(m_fillColor);
@@ -182,7 +326,23 @@ void Scene::createSceneGraph(QSGNode *worldNode){
 
     for(const std::unique_ptr<geos::geom::Geometry> &shape : geometries){
 
-        QSGNode *currentShapeNode = createShapeNode(shape, fillMaterialRealShape, borderMaterialRealShape);
+        QSGNode *currentShapeNode = nullptr;
+
+        switch(shape->getGeometryTypeId()){
+        case geos::geom::GEOS_MULTIPOLYGON:
+            currentShapeNode = createPolygonShapeNode(shape, fillMaterialRealShape, borderMaterialRealShape);
+            break;
+        case geos::geom::GEOS_MULTIPOINT:
+            currentShapeNode = createMultiPointShapeNode(shape, fillMaterialRealShape, borderMaterialRealShape);
+            break;
+        case geos::geom::GEOS_POINT:
+            currentShapeNode = createMultiPointShapeNode(shape, fillMaterialRealShape, borderMaterialRealShape);
+            break;
+        case geos::geom::GEOS_LINESTRING:
+            currentShapeNode = createLineStringShapeNode(shape, fillMaterialRealShape, borderMaterialRealShape);
+            break;
+        }
+
         realShapes->appendChildNode(currentShapeNode);
     }
 
@@ -200,7 +360,7 @@ void Scene::updateSelectionSceneGraph(QSGNode *worldNode){
 
         for(const size_t &indexShape : selectedShapes){
 
-            QSGNode *currentShapeNode = createShapeNode(geometries[indexShape], fillMaterialSelectedShape, borderMaterialSelectedShape);
+            QSGNode *currentShapeNode = createPolygonShapeNode(geometries[indexShape], fillMaterialSelectedShape, borderMaterialSelectedShape);
             selectedShapeNode->appendChildNode(currentShapeNode);
         }
 
