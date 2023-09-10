@@ -53,7 +53,10 @@ Window {
                     flat: true
                     displayText: "Fill color"
                     model: fillColorModel
-                    Component.onCompleted: currentIndex = indexOfValue(scene.fillColor)
+                    Component.onCompleted: { currentIndex = 0
+                                             scene.fillColor = currentValue
+                                           }
+
                     onActivated: scene.fillColor = currentValue;
                 }
             }

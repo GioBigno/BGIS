@@ -19,17 +19,16 @@ Scene::Scene(QQuickItem *parent)
     setFlag(QQuickItem::ItemHasContents, true);
     setAcceptedMouseButtons(Qt::AllButtons);
 
-    m_fillColor = QColor("orange");
+    m_fillColor = nullptr;
 
     tempMoving = false;
-    rotationFactor = 0.1;
-    scaleFactor = 5;
+    rotationFactor = 0;
+    scaleFactor = 1;
 
+    geometriesLoaded = false;
     createShapeSceneGraph = false;
-    updateColor = false;
+    updateColor = true;
     updateSelection = false;
-
-    worldCenter = QPointF(10, 10);
 }
 
 QColor Scene::fillColor(){
@@ -187,7 +186,7 @@ QSGNode* Scene::createMultiPointShapeNode(const std::unique_ptr<geos::geom::Geom
 
         QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 1);
         geometry->setDrawingMode(geometry->DrawPoints);
-        geometry->setLineWidth(5);
+        //geometry->setLineWidth(5);
 
         QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
         points[0].set(part->getCoordinate()->x, part->getCoordinate()->y);
@@ -218,7 +217,7 @@ QSGNode* Scene::createMultiPointShapeNode(const std::unique_ptr<geos::geom::Geom
 
         QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 1);
         geometry->setDrawingMode(geometry->DrawPoints);
-        geometry->setLineWidth(5);
+        //geometry->setLineWidth(5);
 
         QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
         points[0].set(part->getCoordinate()->x, part->getCoordinate()->y);
@@ -312,11 +311,10 @@ QSGNode* Scene::createLineStringShapeNode(const std::unique_ptr<geos::geom::Geom
 void Scene::createSceneGraph(QSGNode *worldNode){
 
     fillMaterialRealShape->setColor(m_fillColor);
-    borderMaterialRealShape->setColor("black");
+    borderMaterialRealShape->setColor(Qt::black);
 
-    QColor selecColor(Qt::lightGray);
-    selecColor.setAlpha(150);
-    fillMaterialSelectedShape->setColor(selecColor);
+    fillMaterialSelectedShape->setColor(fillMaterialRealShape->color().darker());
+    borderMaterialSelectedShape->setColor(Qt::gray);
 
     QSGNode *realShapes = new QSGNode;
     realShapes->setFlag(QSGNode::OwnedByParent, true);
@@ -347,30 +345,57 @@ void Scene::createSceneGraph(QSGNode *worldNode){
     }
 
     worldNode->appendChildNode(realShapes);
-    worldNode->appendChildNode(selectedShape);
+
 }
 
 void Scene::updateSelectionSceneGraph(QSGNode *worldNode){
 
-    if(worldNode->childCount() > 0){
+    if(worldNode->childCount() < 0)
+        return;
 
-        worldNode->removeChildNode(worldNode->lastChild());
+    QSGNode *realShapesNode = worldNode->firstChild();
 
-        QSGNode *selectedShapeNode = new QSGNode;
+    QSGFlatColorMaterial *border;
+    QSGFlatColorMaterial *fill;
 
-        for(const size_t &indexShape : selectedShapes){
+    for(const size_t indexGeom : toSelectShape){
 
-            QSGNode *currentShapeNode = createPolygonShapeNode(geometries[indexShape], fillMaterialSelectedShape, borderMaterialSelectedShape);
-            selectedShapeNode->appendChildNode(currentShapeNode);
+        if(selectedShapes.count(indexGeom)){
+          //alredy selected, remove selection
+            border = borderMaterialRealShape.get();
+            fill = fillMaterialRealShape.get();
+
+            selectedShapes.erase(indexGeom);
+        }else{
+            //to select
+            border = borderMaterialSelectedShape.get();
+            fill = fillMaterialSelectedShape.get();
+
+            selectedShapes.insert(indexGeom);
         }
 
-        worldNode->appendChildNode(selectedShapeNode);
+        QSGNode *shapeNode = realShapesNode->childAtIndex(indexGeom);
+
+        QSGNode *edgeNode = shapeNode->firstChild();
+        for(size_t indexEdge=0; indexEdge < edgeNode->childCount(); indexEdge++){
+            QSGGeometryNode *currentRingNode = dynamic_cast<QSGGeometryNode*>(edgeNode->childAtIndex(indexEdge));
+            currentRingNode->setMaterial(border);
+        }
+
+        QSGNode *fillNode = shapeNode->childAtIndex(1);
+        for(size_t indexFill=0; indexFill < fillNode->childCount(); indexFill++){
+            QSGGeometryNode *currentRingNode = dynamic_cast<QSGGeometryNode*>(fillNode->childAtIndex(indexFill));
+            currentRingNode->setMaterial(fill);
+        }
     }
+
+    toSelectShape.clear();
 }
 
 void Scene::updateColorSceneGraph(QSGNode *worldNode){
 
     fillMaterialRealShape->setColor(m_fillColor);
+    fillMaterialSelectedShape->setColor(m_fillColor.darker());
 }
 
 QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
@@ -419,7 +444,6 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
         updateSelection = false;
     }
 
-
     if(tempMoving)
         tempMovingNode->setMatrix(tempMovingMatrix);
     else
@@ -433,52 +457,38 @@ QSGNode* Scene::updatePaintNode(QSGNode *oldNode, UpdatePaintNodeData *data){
 void Scene::createSpatialIndex(){
 
     //spatialIndex
-    /*
+
     spatialIndex.reset(new geos::index::strtree::SimpleSTRtree);
 
     for(size_t iGeom=0; iGeom < geometries.size(); iGeom++){
-
-        std::unique_ptr<geos::geom::Envelope> env(new geos::geom::Envelope());
-
-        spatialIndex->insert(geometries[iGeom].get()->getBoundary().get()->getEnvelope(), (void*)iGeom);
+        spatialIndex->insert(geometries[iGeom]->getEnvelopeInternal(), (void*)iGeom);
     }
-*/
-
 }
 
 void Scene::selectShape(const QPoint &click){
 
+    if(geometries.size() == 0)
+        return;
+
     QPoint pointClick = screenToWorld.map(click);
 
-    /*
-    std::vector<void *> idk;
-
+    std::vector<void*> maybe;
     geos::geom::CoordinateXY coord(pointClick.x(), pointClick.y());
-    std::unique_ptr<geos::geom::Envelope> env(new geos::geom::Envelope(coord));
-    spatialIndex->query(env.get(), idk);
+    const geos::geom::Envelope* env = new geos::geom::Envelope(coord);
+    spatialIndex->query(env, maybe);
 
-    qDebug() << "idk size: " << idk.size();
-    */
+    for(void* indexGeomVoid : maybe){
+        int indexGeom = static_cast<int>(reinterpret_cast<intptr_t>(indexGeomVoid));
 
-    /*
-    for(size_t iGeom=0; iGeom < geometries.size(); iGeom++){
+        geos::geom::GeometryFactory::Ptr geomFact;
+        std::unique_ptr<geos::geom::Geometry> geom = geomFact->createPoint(geos::geom::Coordinate(env->getMinX(), env->getMinY()));
 
-        geos::geom::Geometry *shape = geometries[iGeom].get();
-
-        geos::geom::Coordinate coord(pointClick.x(), pointClick.y());
-        geos::geom::GeometryFactory::Ptr temp;
-        geos::geom::Point *p = temp->createPoint(coord).release();
-
-        if(shape->contains(p)){
-            if(selectedShapes.count(iGeom))
-                selectedShapes.erase(iGeom);
-            else
-                selectedShapes.insert(iGeom);
-
-            break;
+        if(geometries[indexGeom]->contains(geom.get())){
+            toSelectShape.insert(indexGeom);
         }
     }
-    */
+
+    updateSelection = true;
 }
 
 void Scene::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry){
@@ -494,7 +504,8 @@ void Scene::geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry)
 void Scene::mousePressEvent(QMouseEvent *event){
     QQuickItem::mousePressEvent(event);
     event->accept();
-    mouseDragStart = event->position();
+    mouseDragStart = event->pos();
+
     tempMoving = true;
 }
 
@@ -504,8 +515,9 @@ void Scene::mouseReleaseEvent(QMouseEvent *event){
 
     if(event->pos() == mouseDragStart){ //click
 
-        updateSelection = true;
-        selectShape(event->pos());
+        if(geometriesLoaded){
+            selectShape(event->pos());
+        }
 
     }else{ //drag
 
@@ -609,6 +621,7 @@ void Scene::readShapeFile(QString fileName){
         scaleFactor = scaleHeight;
 
     createShapeSceneGraph = true;
+    geometriesLoaded = true;
 }
 
 void Scene::resetMatrix(){

@@ -68,8 +68,9 @@ private:
     QTransform worldToScreen;
     QTransform tempMovingMatrix;
 
-    QPointF mouseDragStart;
+    QPoint mouseDragStart;
     bool tempMoving;
+    bool geometriesLoaded;
     bool createShapeSceneGraph;
     bool updateColor;
     bool updateSelection;
@@ -86,6 +87,7 @@ private:
 
     std::vector<std::unique_ptr<geos::geom::Geometry>> geometries;
     std::set<size_t> selectedShapes;
+    std::set<size_t> toSelectShape;
 
     std::unique_ptr<geos::index::strtree::SimpleSTRtree> spatialIndex;
 };
