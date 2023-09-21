@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Window
 import QtQuick.Controls 2.15
 import QtQuick.Dialogs
+import Qt.labs.folderlistmodel
 import QtQuick.Layouts
 import Bigno 1.0
 
