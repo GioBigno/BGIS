@@ -654,6 +654,8 @@ void Scene::computeMatrix(){
     screenToWorld.translate(-delta.x(), -delta.y());
 }
 
+#ifdef DEBUG_BUILD
+
 void Scene::debugGeometries(){
 
     qDebug() << "[debug geometries]";
@@ -702,3 +704,5 @@ void Scene::debugGeometries(){
         }
     }
 }
+
+#endif //DEBUG_BUILD

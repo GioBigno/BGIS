@@ -4,12 +4,16 @@ project(BGIS VERSION 6.0 LANGUAGES CXX)
 
 add_compile_definitions(USE_UNSTABLE_GEOS_CPP_API)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG_BUILD)
+endif()
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 
-set(QT_PATH "" CACHE PATH "Path of Qt library package")
-set(GEOS_PATH "" CACHE PATH "Path of geos library package")
-set(SHAPELIB_PATH "" CACHE PATH "Path of shapelib library package")
+set(QT_PATH "/home/giorgio/Qt/6.5.2/gcc_64" CACHE PATH "Path of Qt library package")
+set(GEOS_PATH "/home/giorgio/dev/lib/bin/geos" CACHE PATH "Path of geos library package")
+set(SHAPELIB_PATH "/home/giorgio/dev/lib/bin/shapelib" CACHE PATH "Path of shapelib library package")
 
 list(APPEND CMAKE_PREFIX_PATH "${QT_PATH}")
 list(APPEND CMAKE_PREFIX_PATH "${GEOS_PATH}")

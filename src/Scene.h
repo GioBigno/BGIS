@@ -52,7 +52,9 @@ protected:
 
 private:
 
+#ifdef DEBUG_BUILD
     void debugGeometries();
+#endif
     void readShapeFile(QString fileName);
 
     QColor m_fillColor;
@@ -91,7 +93,5 @@ private:
 
     std::unique_ptr<geos::index::strtree::SimpleSTRtree> spatialIndex;
 };
-
-
 
 #endif // SCENE_H
