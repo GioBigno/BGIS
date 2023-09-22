@@ -1,6 +1,5 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QIcon>
 #include "Scene.h"
 
 int main(int argc, char *argv[])
