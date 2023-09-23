@@ -6,7 +6,7 @@ A cross-platform app for viewing shapefiles made with Qt.
 ## Features
 - visualization and selection of shapes
 - different fill colors
-- hole support
+- holes support
 - Fast rendering via GPU
 - cross-platform
 
