@@ -19,8 +19,10 @@ list(APPEND CMAKE_PREFIX_PATH "${QT_PATH}")
 list(APPEND CMAKE_PREFIX_PATH "${GEOS_PATH}")
 list(APPEND CMAKE_PREFIX_PATH "${SHAPELIB_PATH}")
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Quick
-                     OPTIONAL_COMPONENTS WaylandCompositor)
+find_package(Qt6 6.5 REQUIRED COMPONENTS
+                        Quick
+                     OPTIONAL_COMPONENTS
+                        WaylandCompositor)
 find_package(GEOS REQUIRED)
 find_package(shapelib REQUIRED)
 
